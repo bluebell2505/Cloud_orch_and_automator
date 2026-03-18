@@ -4,7 +4,8 @@ services:
 
   postgres:
     image: postgres:15
-    container_name: cicd-postgres
+    container_name: cicd-db
+    restart: always
     environment:
       POSTGRES_USER: cicd_user
       POSTGRES_PASSWORD: cicd_pass
@@ -17,10 +18,11 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: cicd-grafana
+    restart: always
     ports:
       - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin123
+    depends_on:
+      - postgres
     volumes:
       - grafana_data:/var/lib/grafana
 
