@@ -1,18 +1,19 @@
 # feedback-loop/store_result.py
 # Stores every pipeline failure event, diagnosis, and fix result to PostgreSQL
 
-import psycopg2
+import psycopg
 import os
 from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://cicd_user:cicd_pass@localhost:5432/cicd_db")
+# DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://cicd_user:cicd_pass@localhost:5432/cicd_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://cicd_user:cicd_pass@127.0.0.1:5433/cicd_db")
 
 
 def get_connection():
-    return psycopg2.connect(DATABASE_URL)
+    return psycopg.connect(DATABASE_URL)
 
 
 def create_table_if_not_exists():
