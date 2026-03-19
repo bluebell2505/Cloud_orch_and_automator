@@ -69,15 +69,15 @@ def open_fix_pr(repo: str, filename: str, fix_description: str, branch: str = "m
 
         # If no new_content provided, use AI suggested fix as the file content
         if not new_content:
-            # For dependency errors, fix the version
-            if 'flask==0.0.1' in current_content:
-                new_content = current_content.replace('flask==0.0.1', 'flask==3.1.3')
-            elif 'flask==99.0.0' in current_content:
-                new_content = current_content.replace('flask==99.0.0', 'flask==3.1.3')
-            elif 'pytest==99.0.0' in current_content:
-                new_content = current_content.replace('pytest==99.0.0', 'pytest==7.4.0')
-            else:
-                new_content = current_content + f"\n# Auto-fix applied: {fix_description}\n"
+            import re
+            new_content = current_content
+            # Fix any invalid flask version
+            new_content = re.sub(r'flask==[\d.]+', 'flask==99.0.0', new_content, flags=re.IGNORECASE)
+            # Fix any invalid pytest version
+            new_content = re.sub(r'pytest==9[0-9.]+', 'pytest==7.4.0', new_content, flags=re.IGNORECASE)
+            # If nothing changed, append a comment
+            if new_content == current_content:
+                new_content = current_content + f"\n# Auto-fix: {fix_description}\n"
 
         if file:
             gh_repo.update_file(
