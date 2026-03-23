@@ -38,6 +38,38 @@ def ask_mistral(prompt: str) -> str:
 def parse_json_response(raw_response: str) -> dict:
     """
     Safely parses Mistral's response as JSON.
+    Handles cases where model wraps output in markdown or returns a list.
+    """
+    cleaned = raw_response.strip()
+    
+    # Strip markdown code fences if present
+    if cleaned.startswith("```"):
+        lines = cleaned.split('\n')
+        cleaned = '\n'.join(lines[1:-1])
+
+    try:
+        parsed = json.loads(cleaned)
+        # If model returned a list, take the first item
+        if isinstance(parsed, list):
+            parsed = parsed[0] if parsed else {}
+        # Make sure it's a dict
+        if not isinstance(parsed, dict):
+            raise ValueError("Response is not a dict")
+        return parsed
+    except Exception as e:
+        return {
+            "failure_type": "unknown",
+            "root_cause": "AI response could not be parsed",
+            "suggested_fix": "Manual review required",
+            "fix_type": "notify_human",
+            "confidence": 0.0,
+            "affected_file": None,
+            "affected_line": None,
+            "parse_error": str(e),
+            "raw_response": raw_response
+        }
+    """
+    Safely parses Mistral's response as JSON.
     Handles cases where Mistral wraps output in markdown code blocks.
     
     Args:

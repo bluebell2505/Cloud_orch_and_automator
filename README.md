@@ -1,104 +1,113 @@
-# AI-Powered CI/CD Pipeline Orchestration
+# PipOtter: An AI-Powered CI/CD Pipeline Orchestration
 
-An intelligent CI/CD orchestration system that automatically detects, diagnoses, and fixes pipeline failures using LLMs — reducing Mean Time to Recovery (MTTR) without human intervention.
-
-> Built as a research project for IEEE paper submission.
+PipOtter automatically detects, diagnoses, and fixes CI/CD pipeline failures using a local LLM — no human intervention needed.
 
 ---
 
-## 🧠 How It Works
+## What It Does
+
+When a GitHub Actions pipeline fails, this system:
+
+1. Receives the failure event via GitHub webhook
+2. Fetches and cleans the raw CI logs
+3. Sends the failure context to a local Mistral LLM for diagnosis
+4. Automatically executes the right fix:
+   - Opens a Pull Request with the corrected code
+   - Retries the pipeline (for flaky tests)
+   - Sends an email alert (for complex failures)
+5. Records everything to PostgreSQL
+6. Shows live metrics on a Grafana dashboard
+
+---
+
+## Demo
 
 ```
-Developer pushes code
+Developer pushes bad code
         ↓
-GitHub Actions runs pipeline
-        ↓ (on failure)
-Webhook hits Orchestrator
+GitHub Actions fails
         ↓
-Log Collector pulls & cleans logs
+Webhook hits Orchestrator automatically
         ↓
-AI Engine (Mistral) diagnoses failure
+Log Collector fetches real CI logs
         ↓
-Remediation Engine executes fix
-   ├── retry pipeline
-   ├── open PR with fix
-   └── notify human on Slack
+Mistral AI diagnoses the failure
         ↓
-Feedback Loop stores result to DB
+Remediation Engine acts:
+   ├── dependency_error  →  opens PR with fix
+   ├── flaky_test        →  retries pipeline
+   ├── config_error      →  retries with fix
+   └── unknown / low confidence  →  emails the owner
         ↓
-Grafana dashboard shows metrics
+Event saved to PostgreSQL
+        ↓
+Grafana dashboard updates in real time
 ```
 
 ---
 
-## 👥 Team
+## Tech Stack
 
-| Member | Role | Module |
-|--------|------|--------|
-| Person 1 | AI Engineer | `ai-engine/` |
-| Person 2 | Backend Engineer | `orchestrator/` |
-| Person 3 | DevOps Engineer | `log-collector/`, `pipeline-samples/` |
-| Person 4 | Data + Docs Engineer | `feedback-loop/`, `dashboard/`, `paper/` |
+| Layer | Technology |
+|-------|-----------|
+| CI/CD Engine | GitHub Actions |
+| Orchestrator | Python + FastAPI |
+| AI Engine | Mistral via Ollama (local, free) |
+| Log Ingestion | Elasticsearch + Logstash |
+| Database | PostgreSQL |
+| Auto-fix PRs | PyGithub |
+| Email Alerts | Gmail SMTP |
+| Dashboard | Grafana |
+| Dev Tunnel | ngrok |
+| Containers | Docker + Docker Compose |
 
 ---
 
-## 🗂 Project Structure
+## Project Structure
 
 ```
-ai-cicd-orchestrator/
-├── ai-engine/               # LLM diagnosis engine
-│   ├── classifier.py        # Main diagnosis orchestrator
-│   ├── prompts.py           # Prompt engineering
-│   ├── llm_client.py        # Ollama/Mistral client
+Cloud_orch_and_automator/
+├── ai-engine/                  # LLM diagnosis engine
+│   ├── classifier.py           # Two-stage diagnosis with confidence check
+│   ├── prompts.py              # Prompt engineering templates
+│   ├── llm_client.py           # Ollama/Mistral client
 │   └── requirements.txt
-├── log-collector/           # CI log fetching & parsing
-│   ├── collector.py         # GitHub API log fetcher
-│   ├── parser.py            # Failure block extractor
+├── log-collector/              # CI log fetching and parsing
+│   ├── collector.py            # GitHub API log fetcher
+│   ├── parser.py               # Failure block extractor
 │   └── requirements.txt
-├── orchestrator/            # FastAPI backend — system brain
-│   ├── main.py              # Webhook receiver & coordinator
-│   ├── remediation.py       # Fix execution engine
-│   ├── github_client.py     # GitHub API interactions
+├── orchestrator/               # FastAPI backend — system brain
+│   ├── main.py                 # Webhook receiver and coordinator
+│   ├── remediation.py          # Fix execution engine
+│   ├── github_client.py        # GitHub API — logs, PRs, retrigger
+│   ├── email_notifier.py       # Gmail alert system
 │   └── requirements.txt
-├── feedback-loop/           # Data persistence
-│   ├── store_result.py      # PostgreSQL event storage
+├── feedback-loop/              # Data persistence
+│   ├── store_result.py         # PostgreSQL event storage
+│   ├── db_models.py            # SQLAlchemy models
 │   └── requirements.txt
-├── pipeline-samples/        # Sample apps with intentional bugs
-│   ├── python-app/          # Bug: wrong dependency version
-│   ├── node-app/            # Bug: undefined function call
-│   └── java-app/            # Bug: missing semicolon
-├── dashboard/               # Grafana configuration
-├── paper/                   # IEEE paper draft
-├── docker-compose.yml       # All services in one command
-├── .env.example             # Environment variable template
+├── pipeline-samples/           # Sample apps with intentional bugs
+│   ├── python-app/             # Bug: wrong dependency version
+│   ├── node-app/               # Bug: undefined function call
+│   └── java-app/               # Bug: missing semicolon
+├── dashboard/
+│   └── grafana-config/
+│       └── dashboard.json      # Import this into Grafana
+├── .github/workflows/          # CI workflow definitions
+├── docker-compose.yml
+├── .env.example
 └── README.md
 ```
 
 ---
 
-## 🛠 Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| CI/CD Engine | GitHub Actions |
-| Orchestrator | Python, FastAPI |
-| AI Engine | Mistral (via Ollama — local, free) |
-| Log Ingestion | Elasticsearch + Logstash |
-| Database | PostgreSQL |
-| Auto-fix PRs | PyGithub |
-| Dashboard | Grafana |
-| Tunnel (dev) | ngrok |
-| Containerization | Docker + Docker Compose |
-
----
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Python 3.11+
 - Docker Desktop
 - Git
-- Ollama (for local Mistral)
+- Ollama
 
 ### 1. Clone the repo
 ```bash
@@ -109,24 +118,25 @@ cd Cloud_orch_and_automator
 ### 2. Set up environment variables
 ```bash
 cp .env.example .env
-# Fill in your values
+# Fill in your values — see .env.example for all required variables
 ```
 
-### 3. Start all services
-```bash
-docker-compose up -d
-```
-
-### 4. Pull the AI model
+### 3. Pull the AI model
 ```bash
 ollama pull mistral
-# If low on RAM, use:
+# Low on RAM? Use the lighter model:
 ollama pull tinyllama
+```
+
+### 4. Start all Docker services
+```bash
+docker-compose up -d
+docker ps   # verify 4 containers are running
 ```
 
 ### 5. Install Python dependencies
 ```bash
-pip install fastapi uvicorn PyGithub requests python-dotenv psycopg2-binary ollama
+pip install fastapi uvicorn PyGithub requests python-dotenv psycopg ollama
 ```
 
 ### 6. Start the orchestrator
@@ -139,90 +149,108 @@ uvicorn orchestrator.main:app --reload --port 8000
 ./ngrok http 8000
 ```
 
-### 8. Add webhook to GitHub
-Go to repo → Settings → Webhooks → Add webhook
+### 8. Configure GitHub webhook
+- Go to repo → Settings → Webhooks → Add webhook
 - Payload URL: `https://your-ngrok-url/webhook`
 - Content type: `application/json`
-- Events: Workflow runs
+- Events: Workflow runs only
+
+### 9. Import Grafana dashboard
+- Open `http://localhost:3000` (admin/admin)
+- Connections → Data sources → Add PostgreSQL
+  - Host: `host.docker.internal:5433`
+  - Database: `cicd_db`, User: `cicd_user`, Password: `cicd_pass`
+  - SSL: disable
+- Dashboards → Import → Upload `dashboard/grafana-config/dashboard.json`
 
 ---
 
-## 🐳 Docker Services
+## Docker Services
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| PostgreSQL | 5432 | Failure events database |
+| PostgreSQL | 5433 | Failure events database |
 | Elasticsearch | 9200 | Log indexing and search |
 | Logstash | 5044 | Log parsing pipeline |
-| Grafana | 3000 | Metrics dashboard |
+| Grafana | 3000 | Live metrics dashboard |
+
+> Note: PostgreSQL runs on port **5433** to avoid conflicts with any native PostgreSQL installation on port 5432.
 
 ---
 
-## 🧪 Failure Scenarios
+## How the AI Works
 
-These bugs are intentionally planted in `pipeline-samples/` to test the AI:
+The system uses a **two-stage diagnosis**:
 
-| # | App | Bug | Expected AI Response |
-|---|-----|-----|---------------------|
-| 1 | Python | `flask==99.0.0` (invalid version) | `dependency_error` → open PR |
-| 2 | Node | Undefined function call | `build_error` → notify human |
-| 3 | Java | Missing semicolon | `build_error` → notify human |
+**Stage 1 — Primary diagnosis:**
+The failure log is sent to Mistral with a structured prompt that forces JSON output:
+```json
+{
+  "failure_type": "dependency_error",
+  "root_cause": "flask==0.0.1 does not exist on PyPI",
+  "suggested_fix": "Update flask to a supported version like 3.1.3",
+  "fix_type": "patch_dependency",
+  "confidence": 0.95,
+  "affected_file": "requirements.txt"
+}
+```
+
+**Stage 2 — Flaky test check (if confidence < 0.6):**
+A secondary prompt checks specifically for flaky test patterns and overrides the diagnosis if confirmed.
+
+**Confidence threshold (default 0.65):**
+Below this threshold, the system always notifies the human via email instead of attempting an auto-fix.
+
+---
+
+## Failure Scenarios
+
+| # | App | Bug | AI Response |
+|---|-----|-----|-------------|
+| 1 | Python | `flask==0.0.1` invalid version | `dependency_error` → opens PR |
+| 2 | Node | Undefined function call | `build_error` → emails owner |
+| 3 | Java | Missing semicolon | `build_error` → emails owner |
 | 4 | Python | Missing env variable | `config_error` → retry |
 | 5 | Python | Random pass/fail test | `flaky_test` → retry |
 
 ---
 
-## 📊 Module Interface Contracts
+## Grafana Dashboard Metrics
 
-### Log Collector → Orchestrator
-```python
-# log-collector/parser.py
-def extract_failure_block(raw_log: str) -> str
-# Returns: 30-50 lines around the error
-```
-
-### AI Engine → Orchestrator
-```python
-# ai-engine/classifier.py
-def diagnose_failure(failure_block: str, repo_context: dict) -> dict
-# Returns:
-{
-    "failure_type": "dependency_error | test_failure | config_error | flaky_test | build_error | unknown",
-    "root_cause": "one sentence",
-    "suggested_fix": "actionable fix",
-    "fix_type": "retry | patch_dependency | fix_config | open_pr | notify_human",
-    "confidence": 0.0,
-    "affected_file": "filename or null"
-}
-```
-
-### Orchestrator → Feedback Loop
-```python
-# feedback-loop/store_result.py
-def save_event(run_id: str, repo: str, diagnosis: dict, fix_result: dict) -> None
-```
+| Panel | What It Shows |
+|-------|--------------|
+| Total Failures Processed | Count of all pipeline failures detected |
+| Auto-Fixed Successfully | Count of failures resolved automatically |
+| Avg Time to Fix (MTTR) | Mean time from failure to fix in seconds |
+| Avg AI Confidence Score | Average confidence across all diagnoses |
+| Auto-Fix Success Rate | % of failures fixed without human intervention |
+| Failure Type Distribution | Bar chart of failure categories |
+| Pipeline Failures Over Time | Time series of events |
 
 ---
 
-## 📈 IEEE Metrics
+## Environment Variables
 
-| Metric | Description |
-|--------|-------------|
-| MTTR | Mean Time to Recovery — AI-assisted vs manual baseline |
-| Auto-fix rate | % of failures resolved without human |
-| Classifier accuracy | Precision/Recall on failure types |
-| False positive rate | Wrong fixes that broke things further |
+| Variable | Description |
+|----------|-------------|
+| `GITHUB_TOKEN` | GitHub personal access token (repo + workflow + contents) |
+| `GITHUB_REPO` | Format: owner/repo-name |
+| `DATABASE_URL` | `postgresql://cicd_user:cicd_pass@127.0.0.1:5433/cicd_db` |
+| `OLLAMA_MODEL` | `mistral` or `tinyllama` |
+| `CONFIDENCE_THRESHOLD` | Default 0.65 — below this, notify human |
+| `EMAIL_SENDER` | Gmail address for sending alerts |
+| `EMAIL_PASSWORD` | Gmail app password (16 chars, no spaces) |
+| `EMAIL_RECEIVER` | Email address to receive alerts |
 
 ---
 
-## 🌿 Git Workflow
+## Git Workflow
 
 ```bash
-# Before starting work every day
+# Before starting work
 git checkout master
 git pull origin master
-git checkout your-branch
-git merge master
+git checkout -b your-branch
 
 # After finishing
 git add .
@@ -231,18 +259,13 @@ git push origin your-branch
 # Open PR on GitHub → merge to master
 ```
 
-### Branch naming
-- `member-1/feature-name`
-- `member-2/feature-name`
-- `bluebell/devops-setup` (Person 3)
-
 ---
 
-## 💰 Cost
+## Cost
 
 | Tool | Cost |
 |------|------|
-| GitHub | Free |
+| GitHub + Actions | Free |
 | Mistral via Ollama | Free (runs locally) |
 | PostgreSQL | Free (Docker) |
 | Elasticsearch | Free (Docker) |
@@ -252,6 +275,3 @@ git push origin your-branch
 
 ---
 
-## 📄 License
-
-This project is built for academic research purposes.
