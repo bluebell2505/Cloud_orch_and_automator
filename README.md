@@ -4,6 +4,7 @@ PipOtter automatically detects, diagnoses, and fixes CI/CD pipeline failures usi
 
 ---
 
+
 ## What It Does
 
 When a GitHub Actions pipeline fails, this system:
@@ -272,6 +273,7 @@ git push origin your-branch
 | Grafana | Free (Docker) |
 | ngrok | Free tier |
 | **Total** | **$0** |
+
 
 ---
 
