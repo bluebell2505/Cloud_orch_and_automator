@@ -5,3 +5,5 @@ pytest==7.4.0
 
 
 
+
+# Auto-fix: Update the Flask version in requirements.txt to a supported one or specify an exact existing version.
